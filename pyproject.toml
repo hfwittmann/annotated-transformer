@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "myannotated-transformer"
+version = "0.1.0"
+description = ""
+authors = ["H. Felix Wittmann <hfwittmann@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pandas = "^2.1.3"
+torch = "^2.1.1"
+torchdata = "^0.7.1"
+torchtext = "^0.16.1"
+spacy = "^3.7.2"
+altair = "^5.1.2"
+jupytext = "^1.15.2"
+flake8 = "^6.1.0"
+black = "^23.11.0"
+gputil = "^1.4.0"
+wandb = "^0.16.0"
+ipykernel = "^6.27.0"
+portalocker = "^2.8.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
