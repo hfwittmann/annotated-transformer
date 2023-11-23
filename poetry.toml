@@ -1,0 +1,23 @@
+[virtualenvs]
+create = true
+in-project = true
+
+# You can get all these options with:
+# poetry config --list
+
+# cache-dir = "/root/.cache/pypoetry"
+# experimental.system-git-client = false
+# installer.max-workers = null
+# installer.modern-installation = true
+# installer.no-binary = null
+# installer.parallel = true
+# virtualenvs.create = true
+# virtualenvs.in-project = null
+# virtualenvs.options.always-copy = false
+# virtualenvs.options.no-pip = false
+# virtualenvs.options.no-setuptools = false
+# virtualenvs.options.system-site-packages = false
+# virtualenvs.path = "{cache-dir}/virtualenvs"  # /root/.cache/pypoetry/virtualenvs
+# virtualenvs.prefer-active-python = false
+# virtualenvs.prompt = "{project_name}-py{python_version}"
+# warnings.export = true
