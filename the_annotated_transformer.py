@@ -681,6 +681,7 @@ def example_mask():
         .interactive()
     )
 
+
 # %% [markdown]
 # Further explanation: The example_mask function generates a visualization of a subsequent mask using Altair. It creates a DataFrame LS_data containing the subsequent mask values for different window and masking positions. The function then uses Altair to create a rectangular heatmap visualization of the mask values, with the window and masking positions on the x and y axes, and the subsequent mask values represented by color intensity.
 
@@ -920,16 +921,54 @@ class MultiHeadedAttention(nn.Module):
 
 # %% id="6HHCemCxTsqH"
 class PositionwiseFeedForward(nn.Module):
-    "Implements FFN equation."
+    """
+    Implements the position-wise feed-forward network.
+
+    Args:
+    - d_model (int): The dimensionality of the model.
+    - d_ff (int): The dimensionality of the feed-forward network.
+    - dropout (float, optional): The dropout probability. Default is 0.1.
+
+    Attributes:
+    - w_1 (nn.Linear): The first linear transformation.
+    - w_2 (nn.Linear): The second linear transformation.
+    - dropout (nn.Dropout): The dropout layer.
+
+    Methods:
+    - forward(x): Forward pass of the position-wise feed-forward network.
+
+    More info: The PositionwiseFeedForward class consists of two linear transformations (w_1 and w_2) and a dropout layer. In the forward method, the input tensor x undergoes a linear transformation, followed by a rectified linear unit (ReLU) activation, dropout, and another linear transformation.
+    The position-wise feed-forward network is a crucial component in transformer-based models, contributing to the model's ability to capture complex patterns and relationships within the input data.
+
+    The provided code aligns with the standard implementation of the position-wise feed-forward network used in transformer architectures.
+    """
 
     def __init__(self, d_model, d_ff, dropout=0.1):
+        """
+        Initializes the PositionwiseFeedForward layer.
+
+        Args:
+        - d_model (int): The dimensionality of the model.
+        - d_ff (int): The dimensionality of the feed-forward network.
+        - dropout (float, optional): The dropout probability. Default is 0.1.
+        """
         super(PositionwiseFeedForward, self).__init__()
         self.w_1 = nn.Linear(d_model, d_ff)
         self.w_2 = nn.Linear(d_ff, d_model)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
+        """
+        Forward pass of the position-wise feed-forward network.
+
+        Args:
+        - x (torch.Tensor): Input tensor.
+
+        Returns:
+        - torch.Tensor: Output tensor after applying the feed-forward network.
+        """
         return self.w_2(self.dropout(self.w_1(x).relu()))
+        # what about this here: return self.w_2(self.dropout(F.relu(self.w_1(x))))
 
 
 # %% [markdown] id="dR1YM520TsqH"
@@ -948,12 +987,51 @@ class PositionwiseFeedForward(nn.Module):
 
 # %% id="pyrChq9qTsqH"
 class Embeddings(nn.Module):
+    """
+    A class to create embeddings for input tokens.
+
+    Args:
+    - d_model (int): The dimensionality of the model.
+    - vocab (int): The size of the vocabulary.
+
+    Attributes:
+    - lut (nn.Embedding): The embedding layer.
+    - d_model (int): The dimensionality of the model.
+
+    Methods:
+    - forward(x): Forward pass of the embedding layer.
+
+    """
+
     def __init__(self, d_model, vocab):
+        """
+        Initializes the Embeddings layer.
+
+        Args:
+        - d_model (int): The dimensionality of the model.
+        - vocab (int): The size of the vocabulary.
+        """
         super(Embeddings, self).__init__()
         self.lut = nn.Embedding(vocab, d_model)
+        """
+        lut stands for look-up table
+        
+        Remark: a look-up table is used in the embedding layer to map discrete tokens (e.g., words or subword units) to their corresponding dense vector representations.
+        """
+
         self.d_model = d_model
 
     def forward(self, x):
+        """
+        Forward pass of the embedding layer.
+
+        Args:
+        - x (tensor): Input tokens.
+
+        Returns:
+        - tensor: Embedded vectors after applying the scaling factor.
+
+        """
         return self.lut(x) * math.sqrt(self.d_model)
 
 
@@ -993,9 +1071,35 @@ class Embeddings(nn.Module):
 
 # %% id="zaHGD4yJTsqH"
 class PositionalEncoding(nn.Module):
-    "Implement the PE function."
+    """
+    Applies positional encoding to a tensor with shape (batch_size x seq_len x embed_dim).
+
+    The positional encoding is computed as follows:
+    PE(pos, 2i) = sin(pos/10000^(2i/dmodel))
+    PE(pos, 2i+1) = cos(pos/10000^(2i/dmodel))
+
+    Args:
+    - d_model (int): The dimensionality of the model.
+    - dropout (float): The dropout probability.
+    - max_len (int, optional): The maximum length of the sequence. Default is 5000.
+
+    Attributes:
+    - dropout (nn.Dropout): The dropout layer.
+    - pe (torch.Tensor): The positional encodings.
+
+    Methods:
+    - forward(x): Forward pass of the positional encoding layer.
+    """
 
     def __init__(self, d_model, dropout, max_len=5000):
+        """
+        Initializes the PositionalEncoding layer.
+
+        Args:
+        - d_model (int): The dimensionality of the model.
+        - dropout (float): The dropout probability.
+        - max_len (int, optional): The maximum length of the sequence. Default is 5000.
+        """
         super(PositionalEncoding, self).__init__()
         self.dropout = nn.Dropout(p=dropout)
 
@@ -1011,6 +1115,15 @@ class PositionalEncoding(nn.Module):
         self.register_buffer("pe", pe)
 
     def forward(self, x):
+        """
+        Forward pass of the positional encoding layer.
+
+        Args:
+        - x (torch.Tensor): Input tensor with shape (batch_size x seq_len x embed_dim).
+
+        Returns:
+        - torch.Tensor: Input tensor with positional encodings added and dropout applied.
+        """
         x = x + self.pe[:, : x.size(1)].requires_grad_(False)
         return self.dropout(x)
 
@@ -1024,28 +1137,48 @@ class PositionalEncoding(nn.Module):
 
 # %% id="rnvHk_1QokC6" type="example"
 def example_positional():
-    pe = PositionalEncoding(20, 0)
-    y = pe.forward(torch.zeros(1, 100, 20))
+    """
+    Generates a visualization of the positional encoding using a sine wave.
+
+    More info: In this code, the example_positional function generates a visualization of the positional encoding using a sine wave. It creates a PositionalEncoding instance with 20 dimensions and no dropout, applies the positional encoding to a tensor of zeros, and then constructs a visualization of the positional encoding for specific dimensions.
+    The visualization is created using Altair, a declarative statistical visualization library for Python. It represents the positional encoding values for different dimensions and positions using line plots, allowing for interactive exploration of the positional encoding patterns.
+    The concept of positional encoding is fundamental in transformer-based models, as it provides information about the relative or absolute position of tokens in a sequence.
+
+    The visualization generated by the provided code helps in understanding the patterns and variations in the positional encoding for different dimensions and positions.
+
+    Returns:
+    - alt.Chart: Interactive visualization of the positional encoding.
+    """
+    pe = PositionalEncoding(
+        20, 0
+    )  # Create a positional encoding with 20 dimensions and no dropout
+    y = pe.forward(
+        torch.zeros(1, 100, 20)
+    )  # Apply the positional encoding to a tensor of zeros
 
     data = pd.concat(
         [
             pd.DataFrame(
                 {
-                    "embedding": y[0, :, dim],
-                    "dimension": dim,
-                    "position": list(range(100)),
+                    "embedding": y[
+                        0, :, dim
+                    ],  # Extract the embedding values for a specific dimension
+                    "dimension": dim,  # Dimension index
+                    "position": list(range(100)),  # Position index
                 }
             )
-            for dim in [4, 5, 6, 7]
+            for dim in [4, 5, 6, 7]  # Iterate over specific dimensions
         ]
     )
 
     return (
-        alt.Chart(data)
-        .mark_line()
-        .properties(width=800)
-        .encode(x="position", y="embedding", color="dimension:N")
-        .interactive()
+        alt.Chart(data)  # Create an Altair chart
+        .mark_line()  # Use a line mark for the visualization
+        .properties(width=800)  # Set the width of the visualization
+        .encode(
+            x="position", y="embedding", color="dimension:N"
+        )  # Encode position, embedding, and dimension for visualization
+        .interactive()  # Make the visualization interactive
     )
 
 
@@ -1069,24 +1202,50 @@ show_example(example_positional)
 
 # %% id="mPe1ES0UTsqI"
 def make_model(src_vocab, tgt_vocab, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1):
-    "Helper: Construct a model from hyperparameters."
+    """
+    Constructs a full model from the specified hyperparameters.
+
+    Args:
+    - src_vocab (int): The size of the source vocabulary.
+    - tgt_vocab (int): The size of the target vocabulary.
+    - N (int, optional): The number of encoder and decoder layers. Default is 6.
+    - d_model (int, optional): The dimensionality of the model. Default is 512.
+    - d_ff (int, optional): The dimensionality of the feed-forward network. Default is 2048.
+    - h (int, optional): The number of attention heads. Default is 8.
+    - dropout (float, optional): The dropout probability. Default is 0.1.
+
+    Returns:
+    - model: A full model constructed based on the specified hyperparameters.
+    """
     c = copy.deepcopy
-    attn = MultiHeadedAttention(h, d_model)
-    ff = PositionwiseFeedForward(d_model, d_ff, dropout)
-    position = PositionalEncoding(d_model, dropout)
+    attn = MultiHeadedAttention(h, d_model)  # Multi-headed attention mechanism
+    ff = PositionwiseFeedForward(
+        d_model, d_ff, dropout
+    )  # Position-wise feed-forward network
+    position = PositionalEncoding(d_model, dropout)  # Positional encoding
+
+    # Construct the full model
     model = EncoderDecoder(
-        Encoder(EncoderLayer(d_model, c(attn), c(ff), dropout), N),
-        Decoder(DecoderLayer(d_model, c(attn), c(attn), c(ff), dropout), N),
-        nn.Sequential(Embeddings(d_model, src_vocab), c(position)),
-        nn.Sequential(Embeddings(d_model, tgt_vocab), c(position)),
-        Generator(d_model, tgt_vocab),
+        Encoder(
+            EncoderLayer(d_model, c(attn), c(ff), dropout), N
+        ),  # Encoder with multiple layers
+        Decoder(
+            DecoderLayer(d_model, c(attn), c(attn), c(ff), dropout), N
+        ),  # Decoder with multiple layers
+        nn.Sequential(
+            Embeddings(d_model, src_vocab), c(position)
+        ),  # Source embeddings with positional encoding
+        nn.Sequential(
+            Embeddings(d_model, tgt_vocab), c(position)
+        ),  # Target embeddings with positional encoding
+        Generator(d_model, tgt_vocab),  # Generator for producing output tokens
     )
 
-    # This was important from their code.
-    # Initialize parameters with Glorot / fan_avg.
+    # Initialize parameters with Glorot / fan_avg
     for p in model.parameters():
         if p.dim() > 1:
             nn.init.xavier_uniform_(p)
+
     return model
 
 
@@ -1103,29 +1262,45 @@ def make_model(src_vocab, tgt_vocab, N=6, d_model=512, d_ff=2048, h=8, dropout=0
 
 # %%
 def inference_test():
-    test_model = make_model(11, 11, 2)
-    test_model.eval()
-    src = torch.LongTensor([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])
-    src_mask = torch.ones(1, 1, 10)
+    """
+    Performs a forward step to generate a prediction using an untrained transformer model.
 
-    memory = test_model.encode(src, src_mask)
-    ys = torch.zeros(1, 1).type_as(src)
+    Prints the example untrained model prediction.
+    """
+    test_model = make_model(
+        11, 11, 2
+    )  # Create a transformer model with source and target vocabulary sizes of 11 and 2
+    test_model.eval()  # Set the model to evaluation mode
+    src = torch.LongTensor([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])  # Define a source tensor
+    src_mask = torch.ones(1, 1, 10)  # Define a source mask
+
+    memory = test_model.encode(src, src_mask)  # Encode the source sequence
+    ys = torch.zeros(1, 1).type_as(src)  # Initialize the target sequence
 
     for i in range(9):
         out = test_model.decode(
             memory, src_mask, ys, subsequent_mask(ys.size(1)).type_as(src.data)
-        )
-        prob = test_model.generator(out[:, -1])
-        _, next_word = torch.max(prob, dim=1)
+        )  # Decode the target sequence
+        prob = test_model.generator(
+            out[:, -1]
+        )  # Generate probabilities for the next token
+        _, next_word = torch.max(
+            prob, dim=1
+        )  # Select the next token based on the highest probability
         next_word = next_word.data[0]
         ys = torch.cat(
             [ys, torch.empty(1, 1).type_as(src.data).fill_(next_word)], dim=1
-        )
+        )  # Append the next token to the target sequence
 
-    print("Example Untrained Model Prediction:", ys)
+    print(
+        "Example Untrained Model Prediction:", ys
+    )  # Print the untrained model prediction
 
 
 def run_tests():
+    """
+    Runs the inference test multiple times to demonstrate untrained model predictions.
+    """
     for _ in range(10):
         inference_test()
 
@@ -1154,22 +1329,54 @@ show_example(run_tests)
 
 # %%
 class Batch:
-    """Object for holding a batch of data with mask during training."""
+    """
+    Object for holding a batch of data with mask during training.
 
-    def __init__(self, src, tgt=None, pad=2):  # 2 = <blank>
+    Args:
+    - src (Tensor): Source tensor.
+    - tgt (Tensor, optional): Target tensor. Default is None.
+    - pad (int, optional): Padding index. Default is 2.
+    """
+
+    def __init__(self, src, tgt=None, pad=2):
+        """
+        Initializes the Batch object.
+
+        Args:
+        - src (Tensor): Source tensor.
+        - tgt (Tensor, optional): Target tensor. Default is None.
+        - pad (int, optional): Padding index. Default is 2.
+        """
         self.src = src
-        self.src_mask = (src != pad).unsqueeze(-2)
+        self.src_mask = (src != pad).unsqueeze(
+            -2
+        )  # Create a mask to hide padding in the source tensor
         if tgt is not None:
-            self.tgt = tgt[:, :-1]
-            self.tgt_y = tgt[:, 1:]
-            self.tgt_mask = self.make_std_mask(self.tgt, pad)
-            self.ntokens = (self.tgt_y != pad).data.sum()
+            self.tgt = tgt[:, :-1]  # Target tensor excluding the last token
+            self.tgt_y = tgt[:, 1:]  # Target tensor excluding the first token
+            self.tgt_mask = self.make_std_mask(
+                self.tgt, pad
+            )  # Create a mask to hide padding and future words
+            self.ntokens = (
+                self.tgt_y != pad
+            ).data.sum()  # Number of tokens in the target tensor
 
     @staticmethod
     def make_std_mask(tgt, pad):
-        "Create a mask to hide padding and future words."
-        tgt_mask = (tgt != pad).unsqueeze(-2)
-        tgt_mask = tgt_mask & subsequent_mask(tgt.size(-1)).type_as(tgt_mask.data)
+        """
+        Create a mask to hide padding and future words.
+
+        Args:
+        - tgt (Tensor): Target tensor.
+        - pad (int): Padding index.
+
+        Returns:
+        - Tensor: Mask to hide padding and future words.
+        """
+        tgt_mask = (tgt != pad).unsqueeze(-2)  # Create a mask to hide padding
+        tgt_mask = tgt_mask & subsequent_mask(tgt.size(-1)).type_as(
+            tgt_mask.data
+        )  # Hide future words
         return tgt_mask
 
 
@@ -1185,15 +1392,16 @@ class Batch:
 
 # %%
 class TrainState:
-    """Track number of steps, examples, and tokens processed"""
+    """
+    Tracks the number of steps, examples, and tokens processed during training.
+    """
 
     step: int = 0  # Steps in the current epoch
     accum_step: int = 0  # Number of gradient accumulation steps
-    samples: int = 0  # total # of examples used
-    tokens: int = 0  # total # of tokens processed
+    samples: int = 0  # Total number of examples used
+    tokens: int = 0  # Total number of tokens processed
 
 
-# %% id="2HAZD3hiTsqJ"
 def run_epoch(
     data_iter,
     model,
@@ -1204,7 +1412,26 @@ def run_epoch(
     accum_iter=1,
     train_state=TrainState(),
 ):
-    """Train a single epoch"""
+    """
+    Trains a single epoch.
+
+    More info: In this code, the run_epoch function trains a single epoch of the model. It iterates over the training data, computes the loss, performs backpropagation, updates the model parameters, and adjusts the learning rate. The function also tracks the training progress, including the number of steps, examples, and tokens processed.
+    The run_epoch function is a fundamental component of the training loop in sequence transduction models, enabling the iterative optimization of the model's parameters and the computation of the loss over the training data
+
+    Args:
+    - data_iter: Iterator over the training data.
+    - model: The model to be trained.
+    - loss_compute: The loss computation function.
+    - optimizer: The optimizer for updating model parameters.
+    - scheduler: The learning rate scheduler.
+    - mode (str, optional): The mode of operation. Default is "train".
+    - accum_iter (int, optional): The number of gradient accumulation steps. Default is 1.
+    - train_state (TrainState, optional): The state of the training process. Default is TrainState().
+
+    Returns:
+    - float: Average loss over the epoch.
+    - TrainState: The updated state of the training process.
+    """
     start = time.time()
     total_tokens = 0
     total_loss = 0
@@ -1304,11 +1531,19 @@ def run_epoch(
 # %% id="zUz3PdAnVg4o"
 def rate(step, model_size, factor, warmup):
     """
-    we have to default the step to 1 for LambdaLR function
-    to avoid zero raising to negative power.
+    Calculates the learning rate for the Adam optimizer.
+
+    Args:
+    - step (int): The current step number.
+    - model_size (int): The dimensionality of the model.
+    - factor (float): The factor for adjusting the learning rate.
+    - warmup (int): The number of warmup steps.
+
+    Returns:
+    - float: The calculated learning rate.
     """
     if step == 0:
-        step = 1
+        step = 1  # Avoids zero raising to negative power
     return factor * (
         model_size ** (-0.5) * min(step ** (-0.5), step * warmup ** (-1.5))
     )
@@ -1316,6 +1551,12 @@ def rate(step, model_size, factor, warmup):
 
 # %% id="l1bnrlnSV8J5" tags=[]
 def example_learning_schedule():
+    """
+    Demonstrates the learning rate schedule for different model sizes and optimization hyperparameters.
+
+    Returns:
+    - alt.Chart: Visualization of the learning rate schedule.
+    """
     opts = [
         [512, 1, 4000],  # example 1
         [512, 1, 8000],  # example 2
@@ -1326,8 +1567,10 @@ def example_learning_schedule():
     learning_rates = []
 
     # we have 3 examples in opts list.
+    # Iterate over the examples in opts list
     for idx, example in enumerate(opts):
         # run 20000 epoch for each example
+        # Create an Adam optimizer and a LambdaLR scheduler
         optimizer = torch.optim.Adam(
             dummy_model.parameters(), lr=1, betas=(0.9, 0.98), eps=1e-9
         )
@@ -1335,7 +1578,7 @@ def example_learning_schedule():
             optimizer=optimizer, lr_lambda=lambda step: rate(step, *example)
         )
         tmp = []
-        # take 20K dummy training steps, save the learning rate at each step
+        # Perform 20,000 dummy training steps and save the learning rate at each step
         for step in range(20000):
             tmp.append(optimizer.param_groups[0]["lr"])
             optimizer.step()
@@ -1347,6 +1590,7 @@ def example_learning_schedule():
     # Enable altair to handle more than 5000 rows
     alt.data_transformers.disable_max_rows()
 
+    # Create a visualization of the learning rate schedule using Altair
     opts_data = pd.concat(
         [
             pd.DataFrame(
@@ -1394,7 +1638,20 @@ example_learning_schedule()
 
 # %% id="shU2GyiETsqK"
 class LabelSmoothing(nn.Module):
-    "Implement label smoothing."
+    """
+    Implements label smoothing using the KL div loss.
+
+    more info: In this code, the LabelSmoothing class initializes with the number of classes in the dataset, the padding index, and the smoothing value. During the forward pass, it calculates the true distribution for label smoothing and computes the Kullback-Leibler divergence loss between the predicted distribution and the true distribution.
+    The label smoothing technique is used to prevent the model from becoming overconfident and to improve its generalization. It achieves this by distributing some of the confidence from the correct class to other classes, thereby reducing the model's tendency to overfit to the training data.
+    The LabelSmoothing class is a crucial component in training deep learning models, especially in tasks such as classification, where it helps to regularize the model and improve its performance.
+    The provided code snippet aligns with the common practice of implementing label smoothing, which is essential for improving the accuracy and generalization of deep learning models.
+
+
+    Args:
+    - size (int): The number of classes in the dataset.
+    - padding_idx (int): Index of the padding token.
+    - smoothing (float): Smoothing value. Default is 0.0.
+    """
 
     def __init__(self, size, padding_idx, smoothing=0.0):
         super(LabelSmoothing, self).__init__()
@@ -1406,16 +1663,38 @@ class LabelSmoothing(nn.Module):
         self.true_dist = None
 
     def forward(self, x, target):
-        assert x.size(1) == self.size
-        true_dist = x.data.clone()
-        true_dist.fill_(self.smoothing / (self.size - 2))
-        true_dist.scatter_(1, target.data.unsqueeze(1), self.confidence)
-        true_dist[:, self.padding_idx] = 0
-        mask = torch.nonzero(target.data == self.padding_idx)
-        if mask.dim() > 0:
-            true_dist.index_fill_(0, mask.squeeze(), 0.0)
-        self.true_dist = true_dist
-        return self.criterion(x, true_dist.clone().detach())
+        """
+        Forward pass of the label smoothing module.
+
+        Args:
+        - x (Tensor): Input tensor.
+        - target (Tensor): Target tensor.
+
+        Returns:
+        - Tensor: The calculated loss.
+        """
+        assert (
+            x.size(1) == self.size
+        )  # Ensure the input tensor size matches the number of classes
+        true_dist = x.data.clone()  # Create a clone of the input tensor
+        true_dist.fill_(
+            self.smoothing / (self.size - 2)
+        )  # Fill the tensor with the smoothing value
+        true_dist.scatter_(
+            1, target.data.unsqueeze(1), self.confidence
+        )  # Scatter the confidence to the target classes
+        true_dist[:, self.padding_idx] = 0  # Set the padding index to 0
+        mask = torch.nonzero(
+            target.data == self.padding_idx
+        )  # Find the indices of the padding tokens
+        if mask.dim() > 0:  # If padding indices are found
+            true_dist.index_fill_(
+                0, mask.squeeze(), 0.0
+            )  # Fill the padding indices with 0
+        self.true_dist = true_dist  # Store the true distribution
+        return self.criterion(
+            x, true_dist.clone().detach()
+        )  # Calculate and return the Kullback-Leibler divergence loss
 
 
 # %% [markdown] id="jCxUrlUyTsqK"
@@ -1428,7 +1707,13 @@ class LabelSmoothing(nn.Module):
 
 
 def example_label_smoothing():
-    crit = LabelSmoothing(5, 0, 0.4)
+    """
+    Demonstrates the application of label smoothing using the LabelSmoothing module.
+
+    Returns:
+    - alt.Chart: Visualization of the label smoothing distribution.
+    """
+    crit = LabelSmoothing(5, 0, 0.4)  # Initialize the LabelSmoothing module
     predict = torch.FloatTensor(
         [
             [0, 0.2, 0.7, 0.1, 0],
@@ -1437,8 +1722,10 @@ def example_label_smoothing():
             [0, 0.2, 0.7, 0.1, 0],
             [0, 0.2, 0.7, 0.1, 0],
         ]
-    )
-    crit(x=predict.log(), target=torch.LongTensor([2, 1, 0, 3, 3]))
+    )  # Create a tensor of predicted probabilities
+    crit(
+        x=predict.log(), target=torch.LongTensor([2, 1, 0, 3, 3])
+    )  # Apply label smoothing
     LS_data = pd.concat(
         [
             pd.DataFrame(
@@ -1451,19 +1738,25 @@ def example_label_smoothing():
             for y in range(5)
             for x in range(5)
         ]
-    )
+    )  # Create a DataFrame for visualization
 
     return (
-        alt.Chart(LS_data)
-        .mark_rect(color="Blue", opacity=1)
-        .properties(height=200, width=200)
+        alt.Chart(LS_data)  # Create an Altair chart using the LS_data DataFrame
+        .mark_rect(
+            color="Blue", opacity=1
+        )  # Use rectangular marks with blue color and full opacity
+        .properties(height=200, width=200)  # Set the height and width of the chart
         .encode(
-            alt.X("columns:O", title=None),
-            alt.Y("rows:O", title=None),
-            alt.Color("target distribution:Q", scale=alt.Scale(scheme="viridis")),
+            alt.X(
+                "columns:O", title=None
+            ),  # Encode the X-axis with the 'columns' field
+            alt.Y("rows:O", title=None),  # Encode the Y-axis with the 'rows' field
+            alt.Color(
+                "target distribution:Q", scale=alt.Scale(scheme="viridis")
+            ),  # Encode the color with the 'target distribution' field using the 'viridis' color scheme
         )
-        .interactive()
-    )
+        .interactive()  # Make the chart interactive
+    )  # Create and return a visualization of the label smoothing distribution
 
 
 show_example(example_label_smoothing)
@@ -1478,33 +1771,54 @@ show_example(example_label_smoothing)
 
 
 def loss(x, crit):
-    d = x + 3 * 1
-    predict = torch.FloatTensor([[1, x / d, 1 / d, 1 / d, 1 / d]])
-    return crit(predict.log(), torch.LongTensor([1])).data
+    """
+    Computes the loss using the given input and label smoothing criterion.
+
+    Args:
+    - x: Input value
+    - crit: Label smoothing criterion
+
+    Returns:
+    - torch.Tensor: Loss value
+    """
+    d = x + 3 * 1  # Calculate the value of d
+    predict = torch.FloatTensor(
+        [[1, x / d, 1 / d, 1 / d, 1 / d]]
+    )  # Create a tensor of predicted probabilities
+    return crit(
+        predict.log(), torch.LongTensor([1])
+    ).data  # Compute the loss using label smoothing criterion
 
 
 def penalization_visualization():
-    crit = LabelSmoothing(5, 0, 0.1)
+    """
+    Demonstrates the application of label smoothing to visualize the loss.
+
+    Returns:
+    - alt.Chart: Visualization of the loss with label smoothing.
+    """
+    crit = LabelSmoothing(5, 0, 0.1)  # Initialize the LabelSmoothing module
     loss_data = pd.DataFrame(
         {
-            "Loss": [loss(x, crit) for x in range(1, 100)],
+            "Loss": [
+                loss(x, crit) for x in range(1, 100)
+            ],  # Compute the loss for different input values
             "Steps": list(range(99)),
         }
-    ).astype("float")
+    ).astype(
+        "float"
+    )  # Create a DataFrame for visualization
 
     return (
-        alt.Chart(loss_data)
-        .mark_line()
-        .properties(width=350)
+        alt.Chart(loss_data)  # Create an Altair chart
+        .mark_line()  # Set the chart type to a line plot
+        .properties(width=350)  # Set the width of the chart
         .encode(
-            x="Steps",
-            y="Loss",
+            x="Steps",  # Encode the x-axis with the 'Steps' data
+            y="Loss",  # Encode the y-axis with the 'Loss' data
         )
-        .interactive()
-    )
-
-
-show_example(penalization_visualization)
+        .interactive()  # Make the chart interactive
+    )  # Return the visualization of the loss with label smoothing
 
 
 # %% [markdown] id="67lUqeLXTsqK"
@@ -1520,13 +1834,23 @@ show_example(penalization_visualization)
 
 # %% id="g1aTxeqqTsqK"
 def data_gen(V, batch_size, nbatches):
-    "Generate random data for a src-tgt copy task."
+    """
+    Generate random data for a source-target copy task.
+
+    Args:
+    - V (int): Vocabulary size
+    - batch_size (int): Batch size
+    - nbatches (int): Number of batches to generate
+
+    Yields:
+    - Batch: A batch of source and target data
+    """
     for i in range(nbatches):
-        data = torch.randint(1, V, size=(batch_size, 10))
-        data[:, 0] = 1
-        src = data.requires_grad_(False).clone().detach()
-        tgt = data.requires_grad_(False).clone().detach()
-        yield Batch(src, tgt, 0)
+        data = torch.randint(1, V, size=(batch_size, 10))  # Generate random data
+        data[:, 0] = 1  # Set the first column to 1
+        src = data.requires_grad_(False).clone().detach()  # Create a source tensor
+        tgt = data.requires_grad_(False).clone().detach()  # Create a target tensor
+        yield Batch(src, tgt, 0)  # Yield a batch of source and target data
 
 
 # %% [markdown] id="XTXwD9hUTsqK"
@@ -1538,16 +1862,34 @@ class SimpleLossCompute:
     "A simple loss compute and train function."
 
     def __init__(self, generator, criterion):
+        """
+        Initializes the SimpleLossCompute object.
+
+        Args:
+        - generator: The generator used for generating output
+        - criterion: The loss criterion used for computing the loss
+        """
         self.generator = generator
         self.criterion = criterion
 
     def __call__(self, x, y, norm):
-        x = self.generator(x)
+        """
+        Computes the loss and performs training.
+
+        Args:
+        - x: The input tensor
+        - y: The target tensor
+        - norm: The normalization factor
+
+        Returns:
+        - Tuple[torch.Tensor, torch.Tensor]: A tuple containing the loss data and the loss
+        """
+        x = self.generator(x)  # Generate the output using the generator
         sloss = (
             self.criterion(x.contiguous().view(-1, x.size(-1)), y.contiguous().view(-1))
             / norm
-        )
-        return sloss.data * norm, sloss
+        )  # Compute the loss
+        return sloss.data * norm, sloss  # Return the loss data and the loss
 
 
 # %% [markdown] id="eDAI7ELUTsqL"
@@ -1558,19 +1900,36 @@ class SimpleLossCompute:
 # > This code predicts a translation using greedy decoding for simplicity.
 # %% id="N2UOpnT3bIyU"
 def greedy_decode(model, src, src_mask, max_len, start_symbol):
-    memory = model.encode(src, src_mask)
-    ys = torch.zeros(1, 1).fill_(start_symbol).type_as(src.data)
+    """
+    Predicts a translation using greedy decoding for simplicity.
+
+    Args:
+    - model: The transformer model
+    - src: The source input tensor
+    - src_mask: The source mask tensor
+    - max_len: The maximum length for decoding
+    - start_symbol: The start symbol for decoding
+
+    Returns:
+    - torch.Tensor: The predicted translation
+    """
+    memory = model.encode(src, src_mask)  # Encode the source input
+    ys = (
+        torch.zeros(1, 1).fill_(start_symbol).type_as(src.data)
+    )  # Initialize the target input
     for i in range(max_len - 1):
         out = model.decode(
             memory, src_mask, ys, subsequent_mask(ys.size(1)).type_as(src.data)
-        )
-        prob = model.generator(out[:, -1])
-        _, next_word = torch.max(prob, dim=1)
-        next_word = next_word.data[0]
+        )  # Decode the output
+        prob = model.generator(out[:, -1])  # Generate probabilities for the next word
+        _, next_word = torch.max(
+            prob, dim=1
+        )  # Select the word with the highest probability
+        next_word = next_word.data[0]  # Get the next word
         ys = torch.cat(
             [ys, torch.zeros(1, 1).type_as(src.data).fill_(next_word)], dim=1
-        )
-    return ys
+        )  # Append the next word to the target input
+    return ys  # Return the predicted translation
 
 
 # %% id="qgIZ2yEtdYwe" tags=[]
@@ -1578,46 +1937,55 @@ def greedy_decode(model, src, src_mask, max_len, start_symbol):
 
 
 def example_simple_model():
-    V = 11
-    criterion = LabelSmoothing(size=V, padding_idx=0, smoothing=0.0)
-    model = make_model(V, V, N=2)
+    """
+    Trains a simple copy task using a transformer model and prints the result of greedy decoding.
+    """
+    V = 11  # Vocabulary size
+    criterion = LabelSmoothing(
+        size=V, padding_idx=0, smoothing=0.0
+    )  # Initialize the label smoothing criterion
+    model = make_model(V, V, N=2)  # Create a transformer model
 
     optimizer = torch.optim.Adam(
         model.parameters(), lr=0.5, betas=(0.9, 0.98), eps=1e-9
-    )
+    )  # Initialize the Adam optimizer
     lr_scheduler = LambdaLR(
         optimizer=optimizer,
         lr_lambda=lambda step: rate(
             step, model_size=model.src_embed[0].d_model, factor=1.0, warmup=400
         ),
-    )
+    )  # Initialize the learning rate scheduler
 
-    batch_size = 80
+    batch_size = 80  # Set the batch size
     for epoch in range(20):
-        model.train()
+        model.train()  # Set the model to training mode
         run_epoch(
-            data_gen(V, batch_size, 20),
+            data_gen(V, batch_size, 20),  # Generate random data for training
             model,
-            SimpleLossCompute(model.generator, criterion),
+            SimpleLossCompute(model.generator, criterion),  # Compute the loss
             optimizer,
             lr_scheduler,
             mode="train",
-        )
-        model.eval()
+        )  # Run an epoch for training
+        model.eval()  # Set the model to evaluation mode
         run_epoch(
-            data_gen(V, batch_size, 5),
+            data_gen(V, batch_size, 5),  # Generate random data for evaluation
             model,
-            SimpleLossCompute(model.generator, criterion),
-            DummyOptimizer(),
-            DummyScheduler(),
+            SimpleLossCompute(model.generator, criterion),  # Compute the loss
+            DummyOptimizer(),  # Use a dummy optimizer for evaluation
+            DummyScheduler(),  # Use a dummy scheduler for evaluation
             mode="eval",
-        )[0]
+        )[
+            0
+        ]  # Run an epoch for evaluation
 
-    model.eval()
-    src = torch.LongTensor([[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])
-    max_len = src.shape[1]
-    src_mask = torch.ones(1, 1, max_len)
-    print(greedy_decode(model, src, src_mask, max_len=max_len, start_symbol=0))
+    model.eval()  # Set the model to evaluation mode
+    src = torch.LongTensor([[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])  # Define the source input
+    max_len = src.shape[1]  # Get the maximum length of the source input
+    src_mask = torch.ones(1, 1, max_len)  # Create a mask for the source input
+    print(
+        greedy_decode(model, src, src_mask, max_len=max_len, start_symbol=0)
+    )  # Print the result of greedy decoding
 
 
 # execute_example(example_simple_model)
@@ -1644,27 +2012,58 @@ def example_simple_model():
 
 
 def load_tokenizers():
+    """
+    Loads or downloads and loads spaCy tokenizers for German and English languages.
+
+    Returns:
+    - Tuple: A tuple containing the loaded tokenizers for German and English languages
+    """
     try:
-        spacy_de = spacy.load("de_core_news_sm")
+        spacy_de = spacy.load("de_core_news_sm")  # Attempt to load the German tokenizer
     except IOError:
-        os.system("python -m spacy download de_core_news_sm")
-        spacy_de = spacy.load("de_core_news_sm")
+        os.system(
+            "python -m spacy download de_core_news_sm"
+        )  # Download the German tokenizer
+        spacy_de = spacy.load("de_core_news_sm")  # Load the German tokenizer
 
     try:
-        spacy_en = spacy.load("en_core_web_sm")
+        spacy_en = spacy.load("en_core_web_sm")  # Attempt to load the English tokenizer
     except IOError:
-        os.system("python -m spacy download en_core_web_sm")
-        spacy_en = spacy.load("en_core_web_sm")
+        os.system(
+            "python -m spacy download en_core_web_sm"
+        )  # Download the English tokenizer
+        spacy_en = spacy.load("en_core_web_sm")  # Load the English tokenizer
 
-    return spacy_de, spacy_en
+    return spacy_de, spacy_en  # Return the loaded tokenizers for German and English
 
 
 # %% id="t4BszXXJTsqL" tags=[]
 def tokenize(text, tokenizer):
+    """
+    Tokenizes the input text using the specified tokenizer.
+
+    Args:
+    - text (str): The input text to be tokenized
+    - tokenizer: The tokenizer object to be used for tokenization
+
+    Returns:
+    - List[str]: A list of tokens extracted from the input text
+    """
     return [tok.text for tok in tokenizer.tokenizer(text)]
 
 
 def yield_tokens(data_iter, tokenizer, index):
+    """
+    Preprocesses and tokenizes the text data.
+
+    Args:
+    - data_iter: An iterator of text data
+    - tokenizer: The tokenizer to be used for tokenization
+    - index: The index of the element in the data tuple to be tokenized
+
+    Yields:
+    - List[str]: A list of tokens extracted from the input text
+    """
     try:
         for from_to_tuple in data_iter:
             if from_to_tuple[index] == "":
@@ -1680,48 +2079,104 @@ def yield_tokens(data_iter, tokenizer, index):
 
 
 def build_vocabulary(spacy_de, spacy_en):
+    """
+    Builds vocabularies for the source (German) and target (English) languages.
+
+    Args:
+    - spacy_de: The German tokenizer
+    - spacy_en: The English tokenizer
+
+    Returns:
+    - Tuple: A tuple containing the built vocabularies for the source and target languages
+    """
+
     def tokenize_de(text):
-        return tokenize(text, spacy_de)
+        return tokenize(
+            text, spacy_de
+        )  # Tokenize German text using the German tokenizer
 
     def tokenize_en(text):
-        return tokenize(text, spacy_en)
+        return tokenize(
+            text, spacy_en
+        )  # Tokenize English text using the English tokenizer
 
     print("Building German Vocabulary ...")
-    train, val, test = datasets.Multi30k(language_pair=("de", "en"))
+    train, val, test = datasets.Multi30k(
+        language_pair=("de", "en")
+    )  # Load the Multi30k dataset
     vocab_src = build_vocab_from_iterator(
-        yield_tokens(train + val + test, tokenize_de, index=0),
+        yield_tokens(
+            train + val + test, tokenize_de, index=0
+        ),  # Build the vocabulary for the source language
         min_freq=2,
         specials=["<s>", "</s>", "<blank>", "<unk>"],
     )
 
     print("Building English Vocabulary ...")
-    train, val, test = datasets.Multi30k(language_pair=("de", "en"))
+    train, val, test = datasets.Multi30k(
+        language_pair=("de", "en")
+    )  # Load the Multi30k dataset
     vocab_tgt = build_vocab_from_iterator(
-        yield_tokens(train + val + test, tokenize_en, index=1),
+        yield_tokens(
+            train + val + test, tokenize_en, index=1
+        ),  # Build the vocabulary for the target language
         min_freq=2,
         specials=["<s>", "</s>", "<blank>", "<unk>"],
     )
 
-    vocab_src.set_default_index(vocab_src["<unk>"])
-    vocab_tgt.set_default_index(vocab_tgt["<unk>"])
+    vocab_src.set_default_index(
+        vocab_src["<unk>"]
+    )  # Set the default index for the source vocabulary
+    vocab_tgt.set_default_index(
+        vocab_tgt["<unk>"]
+    )  # Set the default index for the target vocabulary
 
-    return vocab_src, vocab_tgt
+    return (
+        vocab_src,
+        vocab_tgt,
+    )  # Return the built vocabularies for the source and target languages
 
 
 def load_vocab(spacy_de, spacy_en):
-    if not exists("vocab.pt"):
-        vocab_src, vocab_tgt = build_vocabulary(spacy_de, spacy_en)
-        torch.save((vocab_src, vocab_tgt), "vocab.pt")
+    """
+    Loads or builds vocabularies for the source (German) and target (English) languages.
+
+    Args:
+    - spacy_de: The German tokenizer
+    - spacy_en: The English tokenizer
+
+    Returns:
+    - Tuple: A tuple containing the loaded or built vocabularies for the source and target languages
+    """
+    if not exists("vocab.pt"):  # Check if the vocabulary file exists
+        vocab_src, vocab_tgt = build_vocabulary(
+            spacy_de, spacy_en
+        )  # Build vocabularies if the file doesn't exist
+        torch.save(
+            (vocab_src, vocab_tgt), "vocab.pt"
+        )  # Save the built vocabularies to a file
     else:
-        vocab_src, vocab_tgt = torch.load("vocab.pt")
+        vocab_src, vocab_tgt = torch.load(
+            "vocab.pt"
+        )  # Load the vocabularies from the file
+
     print("Finished.\nVocabulary sizes:")
-    print(len(vocab_src))
-    print(len(vocab_tgt))
-    return vocab_src, vocab_tgt
+    print(len(vocab_src))  # Print the size of the source vocabulary
+    print(len(vocab_tgt))  # Print the size of the target vocabulary
+
+    return (
+        vocab_src,
+        vocab_tgt,
+    )  # Return the loaded or built vocabularies for the source and target languages
 
 
 if is_interactive_notebook():
     # global variables used later in the script
+    """
+    The is_interactive_notebook function checks if the current environment is an interactive notebook.
+    If the environment is an interactive notebook, the code proceeds to load or build vocabularies for the source (German) and target (English) languages using the load_tokenizers and load_vocab functions, respectively.
+    The show_example function is used to display the output of the load_tokenizers and load_vocab functions, and the resulting vocabularies are stored in the vocab_src and vocab_tgt variables.
+    """
     spacy_de, spacy_en = show_example(load_tokenizers)
     vocab_src, vocab_tgt = show_example(load_vocab, args=[spacy_de, spacy_en])
 
@@ -1749,6 +2204,22 @@ def collate_batch(
     max_padding=128,
     pad_id=2,
 ):
+    """
+    Preprocesses and collates a batch of data for training.
+
+    Args:
+    - batch: The batch of data to be collated
+    - src_pipeline: The preprocessing pipeline for the source language
+    - tgt_pipeline: The preprocessing pipeline for the target language
+    - src_vocab: The vocabulary for the source language
+    - tgt_vocab: The vocabulary for the target language
+    - device: The device to be used for processing
+    - max_padding: The maximum padding length
+    - pad_id: The padding token id
+
+    Returns:
+    - Tuple[Tensor, Tensor]: A tuple containing the collated source and target tensors
+    """
     bs_id = torch.tensor([0], device=device)  # <s> token id
     eos_id = torch.tensor([1], device=device)  # </s> token id
     src_list, tgt_list = [], []
@@ -1778,7 +2249,6 @@ def collate_batch(
             0,
         )
         src_list.append(
-            # warning - overwrites values for negative values of padding - len
             pad(
                 processed_src,
                 (
@@ -1812,7 +2282,23 @@ def create_dataloaders(
     max_padding=128,
     is_distributed=True,
 ):
-    # def create_dataloaders(batch_size=12000):
+    """
+    Creates data loaders for training and validation.
+
+    Args:
+    - device: The device to be used for processing
+    - vocab_src: The vocabulary for the source language
+    - vocab_tgt: The vocabulary for the target language
+    - spacy_de: The German tokenizer
+    - spacy_en: The English tokenizer
+    - batch_size: The batch size
+    - max_padding: The maximum padding length
+    - is_distributed: Flag indicating whether distributed training is used
+
+    Returns:
+    - Tuple[DataLoader, DataLoader]: A tuple containing the training and validation data loaders
+    """
+
     def tokenize_de(text):
         return tokenize(text, spacy_de)
 
@@ -1833,9 +2319,7 @@ def create_dataloaders(
 
     train_iter, valid_iter, test_iter = datasets.Multi30k(language_pair=("de", "en"))
 
-    train_iter_map = to_map_style_dataset(
-        train_iter
-    )  # DistributedSampler needs a dataset len()
+    train_iter_map = to_map_style_dataset(train_iter)
     train_sampler = DistributedSampler(train_iter_map) if is_distributed else None
     valid_iter_map = to_map_style_dataset(valid_iter)
     valid_sampler = DistributedSampler(valid_iter_map) if is_distributed else None
@@ -1872,6 +2356,22 @@ def train_worker(
     config,
     is_distributed=False,
 ):
+    """
+    Trains a machine translation model.
+
+    Args:
+    - gpu: The GPU to be used for training
+    - ngpus_per_node: The number of GPUs per node
+    - vocab_src: The vocabulary for the source language
+    - vocab_tgt: The vocabulary for the target language
+    - spacy_de: The German tokenizer
+    - spacy_en: The English tokenizer
+    - config: Configuration parameters for training
+    - is_distributed: Flag indicating whether distributed training is used
+
+    Returns:
+    - None
+    """
     print(f"Train worker process using GPU: {gpu} for training", flush=True)
     torch.cuda.set_device(gpu)
 
@@ -1956,6 +2456,19 @@ def train_worker(
 
 # %% tags=[]
 def train_distributed_model(vocab_src, vocab_tgt, spacy_de, spacy_en, config):
+    """
+    Trains a machine translation model in a distributed manner.
+
+    Args:
+    - vocab_src: The vocabulary for the source language
+    - vocab_tgt: The vocabulary for the target language
+    - spacy_de: The German tokenizer
+    - spacy_en: The English tokenizer
+    - config: Configuration parameters for training
+
+    Returns:
+    - None
+    """
     from the_annotated_transformer import train_worker
 
     ngpus = torch.cuda.device_count()
@@ -1971,6 +2484,19 @@ def train_distributed_model(vocab_src, vocab_tgt, spacy_de, spacy_en, config):
 
 
 def train_model(vocab_src, vocab_tgt, spacy_de, spacy_en, config):
+    """
+    Initiates the training process for a machine translation model.
+
+    Args:
+    - vocab_src: The vocabulary for the source language
+    - vocab_tgt: The vocabulary for the target language
+    - spacy_de: The German tokenizer
+    - spacy_en: The English tokenizer
+    - config: Configuration parameters for training
+
+    Returns:
+    - None
+    """
     if config["distributed"]:
         train_distributed_model(vocab_src, vocab_tgt, spacy_de, spacy_en, config)
     else:
@@ -1978,6 +2504,12 @@ def train_model(vocab_src, vocab_tgt, spacy_de, spacy_en, config):
 
 
 def load_trained_model():
+    """
+    Loads a pre-trained machine translation model.
+
+    Returns:
+    - model: The pre-trained machine translation model
+    """
     config = {
         "batch_size": 32,
         "distributed": False,
@@ -2110,6 +2642,21 @@ def check_outputs(
     pad_idx=2,
     eos_string="</s>",
 ):
+    """
+    Evaluates the model's translations and compares them with the ground truth.
+
+    Args:
+    - valid_dataloader: The data loader for validation data
+    - model: The machine translation model
+    - vocab_src: The vocabulary for the source language
+    - vocab_tgt: The vocabulary for the target language
+    - n_examples: The number of examples to evaluate
+    - pad_idx: The padding token index
+    - eos_string: The end-of-sequence token string
+
+    Returns:
+    - results: A list of tuples containing the evaluation results for each example
+    """
     results = [()] * n_examples
     for idx in range(n_examples):
         print("\nExample %d ========\n" % idx)
@@ -2135,6 +2682,16 @@ def check_outputs(
 
 
 def run_model_example(n_examples=5):
+    """
+    Runs the model on a set of examples and checks the model's outputs.
+
+    Args:
+    - n_examples: The number of examples to evaluate
+
+    Returns:
+    - model: The machine translation model
+    - example_data: A list of tuples containing the evaluation results for each example
+    """
     global vocab_src, vocab_tgt, spacy_de, spacy_en
 
     print("Preparing Data ...")
@@ -2175,7 +2732,19 @@ def run_model_example(n_examples=5):
 
 # %%
 def mtx2df(m, max_row, max_col, row_tokens, col_tokens):
-    "convert a dense matrix to a data frame with row and column indices"
+    """
+    Convert a dense matrix to a data frame with row and column indices.
+
+    Args:
+    - m: The dense matrix to be converted
+    - max_row: The maximum number of rows to include in the data frame
+    - max_col: The maximum number of columns to include in the data frame
+    - row_tokens: Tokens for the rows
+    - col_tokens: Tokens for the columns
+
+    Returns:
+    - df: A data frame containing the dense matrix with row and column indices
+    """
     return pd.DataFrame(
         [
             (
@@ -2195,6 +2764,20 @@ def mtx2df(m, max_row, max_col, row_tokens, col_tokens):
 
 
 def attn_map(attn, layer, head, row_tokens, col_tokens, max_dim=30):
+    """
+    Visualizes the attention map of a specific layer and head in the transformer model.
+
+    Args:
+    - attn: The attention tensor
+    - layer: The layer index
+    - head: The head index
+    - row_tokens: Tokens for the rows
+    - col_tokens: Tokens for the columns
+    - max_dim: The maximum dimension to include in the visualization
+
+    Returns:
+    - chart: An interactive visualization of the attention map
+    """
     df = mtx2df(
         attn[0, head].data,
         max_dim,
