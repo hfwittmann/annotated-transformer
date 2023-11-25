@@ -1,4 +1,9 @@
-This is a fork with the following changes:
+# This is a fork with the following
+
+## Changes:
+
+### poetry
+
 -feat:
 
 - added poetry
@@ -6,7 +11,13 @@ This is a fork with the following changes:
   - black
   - isort
 
-Recommended git settings
+### extended docstrings and explanations
+
+This fork also has extended docstrings and explanations for most of the code.
+
+## Recommendations:
+
+### Recommended git settings
 
 ```
 [user]
@@ -18,9 +29,11 @@ Recommended git settings
 
 Example command : `git config credential.helper 'cache --timeout=3600'`
 
-This fork also has extended docstrings and explanations for most of the code.
+#### For VSCode Users:
 
-#
+To use jupytext this extension is useful: https://marketplace.visualstudio.com/items?itemName=congyiwu.vscode-jupytext
+
+# Original README
 
 Code for The Annotated Transformer blog post:
 
