@@ -18,6 +18,10 @@ Recommended git settings
 
 Example command : `git config credential.helper 'cache --timeout=3600'`
 
+This fork also has extended docstrings and explanations for most of the code.
+
+#
+
 Code for The Annotated Transformer blog post:
 
 http://nlp.seas.harvard.edu/annotated-transformer/
