@@ -2,17 +2,19 @@
 # ---
 # jupyter:
 #   jupytext:
+#     custom_cell_magics: kql
 #     formats: ipynb,py:percent
 #     text_representation:
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.13.0
+#       jupytext_version: 1.11.2
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 # ---
+
 # %% [markdown] id="SX7UC-8jTsp7" tags=[]
 #
 # <center><h1>The Annotated Transformer</h1> </center>
@@ -233,6 +235,24 @@ class EncoderDecoder(nn.Module):
     """
     A standard Encoder-Decoder architecture. Base for this and many
     other models.
+
+    Args:
+        encoder (nn.Module): The encoder component of the architecture.
+        decoder (nn.Module): The decoder component of the architecture.
+        src_embed (nn.Module): The source embedding module.
+        tgt_embed (nn.Module): The target embedding module.
+        generator (nn.Module): The generator responsible for producing the output sequence based on the encoded input.
+
+    Methods:
+        forward(src, tgt, src_mask, tgt_mask):
+            Take in and process masked src and target sequences.
+
+        encode(src, src_mask):
+            Encode the source sequence using the encoder and source embedding.
+
+        decode(memory, src_mask, tgt, tgt_mask):
+            Decode the encoded input and produce the output sequence using the decoder and target embedding.
+
     """
 
     def __init__(self, encoder, decoder, src_embed, tgt_embed, generator):
@@ -256,13 +276,33 @@ class EncoderDecoder(nn.Module):
 
 # %% id="NKGoH2RsTsqC"
 class Generator(nn.Module):
-    "Define standard linear + softmax generation step."
+    """
+    Define standard linear + softmax generation step.
+
+    Args:
+        d_model (int): The dimensionality of the input to the linear layer.
+        vocab (int): The size of the vocabulary for the softmax layer.
+
+    Methods:
+        forward(x):
+            Perform the forward pass through the generator.
+
+    """
 
     def __init__(self, d_model, vocab):
         super(Generator, self).__init__()
         self.proj = nn.Linear(d_model, vocab)
 
     def forward(self, x):
+        """
+        Perform the forward pass through the generator.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+
+        Returns:
+            torch.Tensor: The output tensor after the linear + softmax generation step.
+        """
         return log_softmax(self.proj(x), dim=-1)
 
 
@@ -287,21 +327,53 @@ class Generator(nn.Module):
 
 # %% id="2gxTApUYTsqD"
 def clones(module, N):
-    "Produce N identical layers."
+    """
+    Produce N identical layers.
+
+    Args:
+    - module: The layer to be cloned.
+    - N: The number of identical layers to produce.
+
+    Returns:
+    - nn.ModuleList: A list of N identical layers.
+    """
     return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
 
 
 # %% id="xqVTz9MkTsqD"
 class Encoder(nn.Module):
-    "Core encoder is a stack of N layers"
+    """
+    Core encoder is a stack of N layers.
+    """
 
     def __init__(self, layer, N):
+        """
+        Initializes the Encoder with N identical layers.
+
+        Args:
+            - layer: The layer to be used in the encoder.
+            - N: The number of layers in the stack.
+
+        Attributes:
+            - layers: List of N identical layers.
+            - norm: Layer normalization for the output.
+
+        """
         super(Encoder, self).__init__()
         self.layers = clones(layer, N)
         self.norm = LayerNorm(layer.size)
 
     def forward(self, x, mask):
-        "Pass the input (and mask) through each layer in turn."
+        """
+        Passes the input (and mask) through each layer in turn and normalizes the output.
+
+        Args:
+        - x: The input to the encoder.
+        - mask: The mask for the input.
+
+        Returns:
+        - Tensor: The normalized output after passing through the stack of layers.
+        """
         for layer in self.layers:
             x = layer(x, mask)
         return self.norm(x)
@@ -317,17 +389,51 @@ class Encoder(nn.Module):
 
 # %% id="3jKa_prZTsqE"
 class LayerNorm(nn.Module):
-    "Construct a layernorm module (See citation for details)."
+    """
+    Construct a layernorm module (See citation for details).
+
+    Args:
+    - features: The number of features in the input tensor.
+    - eps: A value added to the denominator for numerical stability. Default: 1e-6
+
+
+    Attributes:
+    - a_2: Learnable parameter initialized to ones for scaling.
+    - b_2: Learnable parameter initialized to zeros for bias.
+    - eps: Value added to the denominator for numerical stability.
+    """
 
     def __init__(self, features, eps=1e-6):
+        """
+        Initializes the LayerNorm module with learnable parameters.
+
+        Args:
+        - features: The number of features in the input tensor.
+        - eps: A value added to the denominator for numerical stability. Default: 1e-6
+        """
         super(LayerNorm, self).__init__()
         self.a_2 = nn.Parameter(torch.ones(features))
         self.b_2 = nn.Parameter(torch.zeros(features))
         self.eps = eps
 
     def forward(self, x):
+        """
+        Applies layer normalization over the input tensor.
+
+        The forward function in PyTorch is a method that defines the forward pass of a neural network. In the context of the LayerNorm class, the forward function applies layer normalization to the input tensor x. The process involves calculating the mean and standard deviation of the input tensor and then normalizing the tensor using learnable parameters a_2 and b_2 along with a small value eps for numerical stability.
+
+        Args:
+        - x: The input tensor to be normalized.
+
+        Returns:
+        - Tensor: The normalized output tensor.
+        """
         mean = x.mean(-1, keepdim=True)
         std = x.std(-1, keepdim=True)
+        """
+        The keepdim=True parameter in NumPy and PyTorch functions preserves the reduced dimensions as dimensions with size one in the result. When set to True, the axes which are reduced are left in the result as dimensions with size one. This option ensures that the result will broadcast correctly against the input array.
+        """
+
         return self.a_2 * (x - mean) / (std + self.eps) + self.b_2
 
 
@@ -350,6 +456,11 @@ class SublayerConnection(nn.Module):
     """
     A residual connection followed by a layer norm.
     Note for code simplicity the norm is first as opposed to last.
+
+    Args:
+        size (int): The size of the input.
+        dropout (float): The dropout probability.
+
     """
 
     def __init__(self, size, dropout):
@@ -358,7 +469,16 @@ class SublayerConnection(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, sublayer):
-        "Apply residual connection to any sublayer with the same size."
+        """
+        Apply residual connection to any sublayer with the same size.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+            sublayer (nn.Module): The sublayer to apply the residual connection to.
+
+        Returns:
+            torch.Tensor: The output tensor after applying the residual connection.
+        """
         return x + self.dropout(sublayer(self.norm(x)))
 
 
@@ -371,7 +491,15 @@ class SublayerConnection(nn.Module):
 
 # %% id="qYkUFr6GTsqE"
 class EncoderLayer(nn.Module):
-    "Encoder is made up of self-attn and feed forward (defined below)"
+    """
+    Encoder is made up of self-attn and feed forward.
+
+    Args:
+        size (int): The size of the input.
+        self_attn (nn.Module): The self-attention module.
+        feed_forward (nn.Module): The feed-forward module.
+        dropout (float): The dropout probability.
+    """
 
     def __init__(self, size, self_attn, feed_forward, dropout):
         super(EncoderLayer, self).__init__()
@@ -381,10 +509,22 @@ class EncoderLayer(nn.Module):
         self.size = size
 
     def forward(self, x, mask):
-        "Follow Figure 1 (left) for connections."
+        """
+        Follow Figure 1 (left) for connections.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+            mask: The mask for the input.
+
+        Returns:
+            torch.Tensor: The output tensor after applying the self-attention and feed-forward sublayers.
+        """
         x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, mask))
         return self.sublayer[1](x, self.feed_forward)
 
+
+# %% [markdown]
+# Further explanation: The EncoderLayer class initializes the self-attention and feed-forward sublayers, and it applies the sublayers to the input tensor x in the forward method. The sublayer attribute is a list of two SublayerConnection instances, each representing a residual connection followed by layer normalization and dropout. The forward method applies the self-attention sublayer first and then the feed-forward sublayer to the input tensor x, following the connections shown in Figure 1 of the Transformer architecture
 
 # %% [markdown] id="7ecOQIhkTsqF"
 # ### Decoder
@@ -395,7 +535,13 @@ class EncoderLayer(nn.Module):
 
 # %%
 class Decoder(nn.Module):
-    "Generic N layer decoder with masking."
+    """
+    Generic N layer decoder with masking.
+
+    Args:
+        layer (nn.Module): An instance of the layer to be cloned N times.
+        N (int): The number of times to clone the layer.
+    """
 
     def __init__(self, layer, N):
         super(Decoder, self).__init__()
@@ -403,6 +549,18 @@ class Decoder(nn.Module):
         self.norm = LayerNorm(layer.size)
 
     def forward(self, x, memory, src_mask, tgt_mask):
+        """
+        Apply the cloned layers to the input and return the normalized output.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+            memory (torch.Tensor): The output of the encoder to attend to.
+            src_mask: The mask for the source input.
+            tgt_mask: The mask for the target input.
+
+        Returns:
+            torch.Tensor: The output tensor after applying the decoder layers and normalization.
+        """
         for layer in self.layers:
             x = layer(x, memory, src_mask, tgt_mask)
         return self.norm(x)
@@ -419,7 +577,16 @@ class Decoder(nn.Module):
 
 # %% id="M2hA1xFQTsqF"
 class DecoderLayer(nn.Module):
-    "Decoder is made of self-attn, src-attn, and feed forward (defined below)"
+    """
+    Decoder is made of self-attn, src-attn, and feed forward.
+
+    Args:
+        size (int): The size of the input.
+        self_attn (nn.Module): The self-attention module.
+        src_attn (nn.Module): The source attention module.
+        feed_forward (nn.Module): The feed-forward module.
+        dropout (float): The dropout probability.
+    """
 
     def __init__(self, size, self_attn, src_attn, feed_forward, dropout):
         super(DecoderLayer, self).__init__()
@@ -430,7 +597,18 @@ class DecoderLayer(nn.Module):
         self.sublayer = clones(SublayerConnection(size, dropout), 3)
 
     def forward(self, x, memory, src_mask, tgt_mask):
-        "Follow Figure 1 (right) for connections."
+        """
+        Follow Figure 1 (right) for connections.
+
+        Args:
+            x (torch.Tensor): The input tensor.
+            memory (torch.Tensor): The output of the encoder to attend to.
+            src_mask: The mask for the source input.
+            tgt_mask: The mask for the target input.
+
+        Returns:
+            torch.Tensor: The output tensor after applying the decoder layers.
+        """
         m = memory
         x = self.sublayer[0](x, lambda x: self.self_attn(x, x, x, tgt_mask))
         x = self.sublayer[1](x, lambda x: self.src_attn(x, m, m, src_mask))
@@ -448,7 +626,15 @@ class DecoderLayer(nn.Module):
 
 # %% id="QN98O2l3TsqF"
 def subsequent_mask(size):
-    "Mask out subsequent positions."
+    """
+    Mask out subsequent positions.
+
+    Args:
+        size (int): The size of the mask.
+
+    Returns:
+        torch.Tensor: A boolean mask where the upper triangular part (excluding the diagonal) is True and the rest is False.
+    """
     attn_shape = (1, size, size)
     subsequent_mask = torch.triu(torch.ones(attn_shape), diagonal=1).type(torch.uint8)
     return subsequent_mask == 0
@@ -463,6 +649,12 @@ def subsequent_mask(size):
 
 # %% id="ht_FtgYAokC4"
 def example_mask():
+    """
+    Generate a visualization of a subsequent mask using Altair.
+
+    Returns:
+        alt.Chart: A visualization of the subsequent mask.
+    """
     LS_data = pd.concat(
         [
             pd.DataFrame(
@@ -489,8 +681,8 @@ def example_mask():
         .interactive()
     )
 
-
-show_example(example_mask)
+# %% [markdown]
+# Further explanation: The example_mask function generates a visualization of a subsequent mask using Altair. It creates a DataFrame LS_data containing the subsequent mask values for different window and masking positions. The function then uses Altair to create a rectangular heatmap visualization of the mask values, with the window and masking positions on the x and y axes, and the subsequent mask values represented by color intensity.
 
 # %% [markdown] id="Qto_yg7BTsqG"
 # ### Attention
@@ -526,7 +718,20 @@ show_example(example_mask)
 
 # %% id="qsoVxS5yTsqG"
 def attention(query, key, value, mask=None, dropout=None):
-    "Compute 'Scaled Dot Product Attention'"
+    """
+    Compute 'Scaled Dot Product Attention'.
+
+    Args:
+        query (torch.Tensor): The query tensor.
+        key (torch.Tensor): The key tensor.
+        value (torch.Tensor): The value tensor.
+        mask (torch.Tensor, optional): The mask tensor. Defaults to None.
+        dropout (nn.Dropout, optional): The dropout module. Defaults to None.
+
+    Returns:
+        torch.Tensor: The output tensor after applying the scaled dot product attention.
+        torch.Tensor: The attention weights.
+    """
     d_k = query.size(-1)
     scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(d_k)
     if mask is not None:
@@ -536,6 +741,9 @@ def attention(query, key, value, mask=None, dropout=None):
         p_attn = dropout(p_attn)
     return torch.matmul(p_attn, value), p_attn
 
+
+# %% [markdown]
+# Here's more detail: The attention function computes the "Scaled Dot Product Attention" used in the Transformer model. It takes query, key, and value tensors as inputs and computes the attention scores, which are then used to scale the values through a weighted multiplication operation. The function also handles optional masking and dropout. The attention scores are scaled by the square root of the dimension of the keys, and a softmax function is applied to obtain a set of attention weights. The function returns the weighted sum of the value vectors and the attention weights.
 
 # %% [markdown] id="jUkpwu8kTsqG"
 #
@@ -597,8 +805,25 @@ def attention(query, key, value, mask=None, dropout=None):
 
 # %% id="D2LBMKCQTsqH"
 class MultiHeadedAttention(nn.Module):
+    """
+    Multi-headed attention mechanism.
+
+    Args:
+        h (int): Number of attention heads.
+        d_model (int): Model dimensionality.
+        dropout (float): Dropout probability. Defaults to 0.1.
+
+    More info: The multi-headed attention mechanism allows the model to focus on different parts of the input simultaneously, enhancing its ability to capture complex patterns and dependencies in the data.
+    """
+
     def __init__(self, h, d_model, dropout=0.1):
-        "Take in model size and number of heads."
+        """
+        Initializes the MultiHeadedAttention.
+
+        More info: The __init__ method initializes the MultiHeadedAttention class with the specified number of attention heads (h), model dimensionality (d_model), and dropout probability (dropout).
+        It asserts that the model dimensionality is divisible by the number of attention heads.
+        It initializes linear transformations and dropout layers for the attention mechanism.
+        """
         super(MultiHeadedAttention, self).__init__()
         assert d_model % h == 0
         # We assume d_v always equals d_k
@@ -609,7 +834,22 @@ class MultiHeadedAttention(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, query, key, value, mask=None):
-        "Implements Figure 2"
+        """
+        Implements multi-headed attention mechanism.
+
+        Args:
+            query (torch.Tensor): The query tensor.
+            key (torch.Tensor): The key tensor.
+            value (torch.Tensor): The value tensor.
+            mask (torch.Tensor, optional): The mask tensor. Defaults to None.
+
+        Returns:
+            torch.Tensor: The output tensor after applying multi-headed attention.
+
+        More info: The forward method applies the multi-headed attention mechanism to the input query, key, and value tensors.
+        It projects the input tensors using linear transformations and reshapes them to prepare for the attention computation.
+        It then applies the attention mechanism and processes the output to produce the final result.
+        """
         if mask is not None:
             # Same mask applied to all h heads.
             mask = mask.unsqueeze(1)
@@ -1126,7 +1366,7 @@ def example_learning_schedule():
         alt.Chart(opts_data)
         .mark_line()
         .properties(width=600)
-        .encode(x="step", y="Learning Rate", color="model_size:warmup:N")
+        .encode(x="step", y="Learning Rate", color="model_size\:warmup:N")
         .interactive()
     )
 
@@ -1239,7 +1479,7 @@ show_example(example_label_smoothing)
 
 def loss(x, crit):
     d = x + 3 * 1
-    predict = torch.FloatTensor([[0, x / d, 1 / d, 1 / d, 1 / d]])
+    predict = torch.FloatTensor([[1, x / d, 1 / d, 1 / d, 1 / d]])
     return crit(predict.log(), torch.LongTensor([1])).data
 
 
@@ -1425,8 +1665,15 @@ def tokenize(text, tokenizer):
 
 
 def yield_tokens(data_iter, tokenizer, index):
-    for from_to_tuple in data_iter:
-        yield tokenizer(from_to_tuple[index])
+    try:
+        for from_to_tuple in data_iter:
+            if from_to_tuple[index] == "":
+                continue
+            yield tokenizer(from_to_tuple[index])
+    except Exception as e:
+        print(str(e))
+        yield tokenizer("")
+        # ('', '')
 
 
 # %% id="jU3kVlV5okC-" tags=[]
