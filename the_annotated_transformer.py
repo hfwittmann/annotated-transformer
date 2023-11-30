@@ -455,7 +455,12 @@ class LayerNorm(nn.Module):
 class SublayerConnection(nn.Module):
     """
     A residual connection followed by a layer norm.
-    Note for code simplicity the norm is first as opposed to last.
+    Note for code simplicity/efficiency the norm is first as opposed to last.
+    https://proceedings.mlr.press/v119/xiong20b/xiong20b.pdf
+
+    More info: A residual connection, also known as a skip connection, provides an alternative path for data to flow through a neural network by skipping some layers. It connects the output of one layer to the input of another layer further along in the network, allowing the network to learn residual functions. This technique was introduced to address the vanishing/exploding gradient problem encountered in deep neural network models, which makes training deeper networks difficult. By using residual connections, the network can learn the residual mapping, making it easier for the network to fit the residual functions, and thus train deeper networks more effectively.
+ 
+    The SublayerConnection class in the provided code applies the dropout function to the output of a sublayer before adding it to the sublayer input and normalizing it. The dropout function works by randomly setting input units to 0 with a frequency of rate at each step during training time. This means that the contribution of the dropped-out units to the activation of downstream neurons is temporarily removed on the forward pass, and any weight updates are not applied to the dropped-out units on the backward pass. This helps in preventing overfitting and improving the generalization of the model by randomly dropping out some units during training, thus reducing the reliance on specific units and promoting the learning of more generalized features.s
 
     Args:
         size (int): The size of the input.
@@ -511,6 +516,8 @@ class EncoderLayer(nn.Module):
     def forward(self, x, mask):
         """
         Follow Figure 1 (left) for connections.
+
+        More info: This sequence of operations aligns with the architecture of the Transformer model, where each layer consists of two sublayers: self-attention and feed-forward, each augmented with residual connections and layer normalization. This design facilitates the flow of information and gradients through the network, contributing to the effectiveness and performance of the Transformer model.
 
         Args:
             x (torch.Tensor): The input tensor.
@@ -680,6 +687,8 @@ def example_mask():
         )
         .interactive()
     )
+
+show_example(example_mask)
 
 
 # %% [markdown]
@@ -1184,6 +1193,14 @@ def example_positional():
 
 show_example(example_positional)
 
+
+# %%
+torch(3+4j
+
+# %%
+from torch.nn import Conv2d
+
+data
 
 # %% [markdown] id="g8rZNCrzTsqI"
 #
